@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faUpload } from '@fortawesome/free-solid-svg-icons';
@@ -6,9 +6,22 @@ import { getTodos, addTodo, updateTodo, deleteTodo } from '../../api/todosApi';
 
 const TodoList = () => {
 	let content;
+	const [isWake, setIsWake] = useState(false);
 	const [newTodo, setNewTodo] = useState('');
 	const queryClient = useQueryClient();
-	const { isLoading, isError, error, data } = useQuery(['todos'], getTodos);
+	const { isLoading, isSuccess, isError, error, refetch, isFetching, data } = useQuery(['todos'], getTodos, {
+		enabled: isWake
+	});
+
+	// useEffect(() => {
+	// 	const timerId = setTimeout(() => {
+	// 		setIsWake(true);
+	// 	}, 3000);
+
+	// 	return () => {
+	// 		clearTimeout(timerId);
+	// 	};
+	// }, []);
 
 	const addTodoMutation = useMutation(addTodo, {
 		onSuccess: () => {
@@ -59,11 +72,13 @@ const TodoList = () => {
 		</form>
 	);
 
-	if (isLoading) {
+	if (isLoading && !isFetching) {
+		content = <p>Click the button to get data!!!</p>;
+	} else if (isLoading) {
 		content = <p>Loading...</p>;
 	} else if (isError) {
 		content = <p>{error.message}</p>;
-	} else {
+	} else if (isSuccess) {
 		content = data.map((todo) => {
 			return (
 				<article key={todo.id}>
@@ -82,11 +97,16 @@ const TodoList = () => {
 				</article>
 			);
 		});
+	} else {
+		content = <p>Nothing to show...</p>;
 	}
 
 	return (
 		<main>
 			<h1>Todo List</h1>
+			<button onClick={() => refetch()} style={{ marginBottom: '10px' }}>
+				Get data
+			</button>
 			{formSection}
 			{content}
 		</main>
